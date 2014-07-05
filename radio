@@ -1,0 +1,503 @@
+#!/bin/bash
+
+mount -al
+zeitstempel="$(date --rfc-3339=seconds)" ; echo "===== Start -> ${zeitstempel:0:19} ====="
+
+# TS-Dateien im Radio-Ordner?
+
+tsdateien=$(find /media/Dreambox/Radio/ -name "*.ts" | wc -l)
+
+if [ "$tsdateien" = "0" ]
+then
+echo "Nichts zu kodieren."
+curl "https://api.prowlapp.com/publicapi/add/?apikey=0123456789012345678901234567890123456789&application=RADIO-KONVERTER&description=Nichts%20zu%20der%20konvertieren"
+curl http://192.168.1.14/web/powerstate?newstate={1}
+wall /home/tobias/wall.text
+sleep 600
+zeitstempel="$(date --rfc-3339=seconds)" ; echo "===== Ende -> ${zeitstempel:0:19} ====="
+poweroff
+exit
+
+else
+for dateiname in /media/Dreambox/Radio/*.ts
+do
+        dateiohnepfad="${dateiname##*/}"
+	dateiohnepfadundendung="${dateiohnepfad%.*}"
+
+# MP2 aus TS-Dateien extrahieren und in MP3 wandeln
+
+avconv -i "$dateiname" -vn -acodec libmp3lame -ab 256k "/media/Daten/Radio/${dateiohnepfadundendung}.mp3"
+
+# Dateinamen analysieren und Datum, Uhrzeit und Genre setzen
+
+        jahr=${dateiohnepfad:0:4}
+        monat=${dateiohnepfad:4:2}
+        tag=${dateiohnepfad:6:2}
+	datum="$tag.$monat.$jahr"
+	stunde=${dateiohnepfad:9:2}
+	minute=${dateiohnepfad:11:2}
+	uhrzeit="$stunde:$minute Uhr"
+        genre="101"
+
+
+# Mapping Dateiname => Sender
+
+# Bayerischer Rundfunk
+
+if [[ "$dateiname" =~ "-_B5_AKTUELL_-" ]]
+then
+	sender="B5 aktuell"
+
+elif [[ "$dateiname" =~ "-_BAYERN_1_-" ]]
+then
+	sender="Bayern 1"
+
+elif [[ "$dateiname" =~ "-_BAYERN_2_-" ]]
+then
+        sender="Bayern 2"
+
+elif [[ "$dateiname" =~ "-_BAYERN_3_-" ]]
+then
+        sender="Bayern 3"
+
+elif [[ "$dateiname" =~ "-_B5_PLUS_-" ]]
+then
+	sender="B5 Plus"
+
+elif [[ "$dateiname" =~ "-_BAYERN_PLUS_-" ]]
+then
+	sender="Bayern plus"
+
+elif [[ "$dateiname" =~ "-_BR-KLASSIK_-" ]]
+then
+	sender="BR-Klassik"
+
+elif [[ "$dateiname" =~ "-_PULS_-" ]]
+then
+	sender="PULS"
+
+
+# Hessischer Rundfunk
+
+elif [[ "$dateiname" =~ "-_HR-INFO_-" ]]
+then
+	sender="HR Info"
+
+elif [[ "$dateiname" =~ "-_HR1_-" ]]
+then
+	sender="HR 1"
+
+elif [[ "$dateiname" =~ "-_HR2_-" ]]
+then
+        sender="HR 2"
+
+elif [[ "$dateiname" =~ "-_HR3_-" ]]
+then
+        sender="HR 3"
+
+elif [[ "$dateiname" =~ "-_HR4_-" ]]
+then
+        sender="HR 4"
+elif [[ "$dateiname" =~ "-_YOU_FM_-" ]]
+then
+	sender="youfm"
+
+
+# Mitteldeutscher Rundfunk
+
+elif [[ "$dateiname" =~ "-_MDR_FIGARO_-" ]]
+then
+        sender="MDR Figaro"
+
+elif [[ "$dateiname" =~ "-_MDR_INFO_-" ]]
+then
+        sender="MDR Info"
+
+elif [[ "$dateiname" =~ "-_MDR_KLASSIK_-" ]]
+then
+        sender="MDR Klassik"
+
+elif [[ "$dateiname" =~ "-_MDR_JUMP_-" ]]
+then
+        sender="MDR Jump"
+
+elif [[ "$dateiname" =~ "-_MDR_S-ANHALT_-" ]]
+then
+        sender="MDR Sachsen-Anhalt"
+
+elif [[ "$dateiname" =~ "-_MDR_SPUTNIK_-" ]]
+then
+        sender="MDR Sputnik"
+
+elif [[ "$dateiname" =~ "-_MDR_THUERINGEN_-" ]]
+then
+        sender="MDR Thüringen"
+
+elif [[ "$dateiname" =~ "-_MDR1_SACHSEN_" ]]
+then
+        sender="MDR Sachsen"
+
+
+# Norddeutscher Rundfunk
+
+elif [[ "$dateiname" =~ "-_NDR_INFO_-" ]]
+then
+	sender="NDR Info"
+
+elif [[ "$dateiname" =~ "-_NDR_1_RADIO_MV_" ]]
+then
+        sender="NDR 1 Radio MV"
+
+elif [[ "$dateiname" =~ "-_NDR_2_-" ]]
+then
+        sender="NDR 2"
+
+elif [[ "$dateiname" =~ "-_N-JOY_-" ]]
+then
+        sender="N-JOY"
+
+elif [[ "$dateiname" =~ "-_NDR1WELLENORD_-" ]]
+then
+        sender="NDR 1 Welle Nord"
+
+elif [[ "$dateiname" =~ "-_NDR_1_NIEDERS__-" ]]
+then
+        sender="NDR 1 Niedersachsen"
+
+elif [[ "$dateiname" =~ "-_NDR_90,3_-" ]]
+then
+        sender="NDR 90,3"
+
+elif [[ "$dateiname" =~ "-_NDR_KULTUR_-" ]]
+then
+        sender="NDR Kultur"
+
+elif [[ "$dateiname" =~ "-_NDR_BLUE_-" ]]
+then
+        sender="NDR Blue"
+
+elif [[ "$dateiname" =~ "-_NDR_INFO_SPEZ__-" ]]
+then
+        sender="NDR Info Spezial"
+
+
+# Rundfunk Berlin Brandenburg
+
+elif [[ "$dateiname" =~ "-_RADIOBERLIN_88,8_-" ]]
+then
+        sender="Radio Berlin"
+
+elif [[ "$dateiname" =~ "-_FRITZ_-" ]]
+then
+        sender="Fritz"
+
+elif [[ "$dateiname" =~ "-_RADIOEINS_-" ]]
+then
+        sender="radioeins"
+
+elif [[ "$dateiname" =~ "-_ANTENNE_BRANDENBURG_-" ]]
+then
+        sender="Antenne Brandenburg"
+
+elif [[ "$dateiname" =~ "-_KULTURRADIO_-" ]]
+then
+        sender="Kulturradio"
+
+elif [[ "$dateiname" =~ "-_INFORADIO_-" ]]
+then
+        sender="Inforadio"
+
+
+# Radio Bremen
+
+elif [[ "$dateiname" =~ "-_BREMEN_EINS_-" ]]
+then
+        sender="Bremen Eins"
+
+elif [[ "$dateiname" =~ "-_BREMEN_VIER_-" ]]
+then
+        sender="Bremen Vier"
+
+elif [[ "$dateiname" =~ "-_NORDWESTRADIO_-" ]]
+then
+        sender="Nordwestradio"
+
+
+# Saarländischer Rundfunk
+
+elif [[ "$dateiname" =~ "-_SR_1_EUROPAWELLE_-" ]]
+then
+        sender="SR 1 Europawelle"
+
+elif [[ "$dateiname" =~ "-_SR_2_KULTURRADIO_-" ]]
+then
+        sender="SR 2 Kulturradio"
+
+elif [[ "$dateiname" =~ "-_SR_3_SAARLANDWELLE_-" ]]
+then
+        sender="SR 3 Saarlandwelle"
+
+
+# Südwestrundfunk
+
+elif [[ "$dateiname" =~ "-_DASDING_-" ]]
+then
+        sender="Das Ding"
+
+elif [[ "$dateiname" =~ "-_SWR1_BW_-" ]]
+then
+        sender="SWR 1 Baden-Württemberg"
+
+elif [[ "$dateiname" =~ "-_SWR1_RP_-" ]]
+then
+        sender="SWR 1 Rheinland-Pfalz"
+
+elif [[ "$dateiname" =~ "-_SWR2_-" ]]
+then
+        sender="SWR 2"
+
+elif [[ "$dateiname" =~ "-_SWR3_-" ]]
+then
+        sender="SWR 3"
+
+elif [[ "$dateiname" =~ "-_SWR4_BW_-" ]]
+then
+        sender="SWR 4 Baden-Württemberg"
+
+elif [[ "$dateiname" =~ "-_SWR4_RP_-" ]]
+then
+        sender="SWR 4 Rheinland-Pfalz"
+
+elif [[ "$dateiname" =~ "-_SWRINFO_-" ]]
+then
+        sender="SWR Info"
+
+
+# Westdeutscher Rundfunk
+
+elif [[ "$dateiname" =~ "-_KIRAKA_-" ]]
+then
+	sender="KiRaKa"
+
+elif [[ "$dateiname" =~ "-_1LIVE_-" ]]
+then
+	sender="1LIVE"
+
+elif [[ "$dateiname" =~ "-_1LIVE_DIGGI_-" ]]
+then
+	sender="1LIVE diggi"
+
+elif [[ "$dateiname" =~ "-_WDR_2_-" ]]
+then
+	sender="WDR 2"
+
+elif [[ "$dateiname" =~ "-_WDR_3_-" ]]
+then
+        sender="WDR 3"
+
+elif [[ "$dateiname" =~ "-_WDR_4_-" ]]
+then
+        sender="WDR 4"
+
+elif [[ "$dateiname" =~ "-_WDR_5_-" ]]
+then
+        sender="WDR 5"
+
+elif [[ "$dateiname" =~ "-_WDR_FUNKHAUS_EUROPA_-" ]]
+then
+	sender="Funkhaus Europa"
+
+elif [[ "$dateiname" =~ "-_WDR_EVENT_-" ]]
+then
+	sender="WDR Event"
+
+
+# Deutschlandfunk - Deutschlandradio
+
+elif [[ "$dateiname" =~ "-_DKULTUR_-" ]]
+then
+        sender="Deutschlandradio Kultur"
+
+elif [[ "$dateiname" =~ "-_DLF_-" ]]
+then
+        sender="Deutschlandfunk"
+
+elif [[ "$dateiname" =~ "-_DRADIO_WISSEN_-" ]]
+then
+        sender="DRadio Wissen"
+
+
+# Fallback
+
+else
+	sender="Unbekannt"
+fi
+
+
+# Mapping Dateiname => Sendung
+
+# Bayerischer Rundfunk
+
+if [[ "$dateiname" =~ "_RADIOMIKRO" ]]
+then
+        sendung="radioMikro"
+
+elif [[ "$dateiname" =~ "-_DO_RE_MIKRO" ]]
+then
+	sendung="Do Re Mikro"
+
+# Hessischer Rundfunk
+
+elif [[ "$dateiname" =~ "ZAUBERFLOETE_-_KLASSIK_FUER_KINDER" ]]
+then
+	sendung="Zauberflöte - Klassik für Kinder"
+
+elif [[ "$dateiname" =~ "-_LAUSCHINSEL_-" ]]
+then
+        sendung="Lauschinsel - Radio für Kinder"
+
+# Mitteldeutscher Rundfunk
+
+elif [[ "$dateiname" =~ "-_FIGARINO" ]]
+then
+        sendung="Figarino"
+
+# Norddeutscher Rundfunk
+
+elif [[ "$dateiname" =~ "MIKADO_AM_MORGEN" ]]
+then
+	sendung="Mikado am Morgen"
+
+elif [[ "$dateiname" =~ "-_MIKADO_-_RADIO_FUER_KINDER" ]]
+then
+	sendung="Mikado"
+
+# Südwestrundfunk
+
+elif [[ "$dateiname" =~ "-_SWR2_SPIELRAUM_-_DIE_GESCHICHTE" ]]
+then
+        sendung="SWR 2 Spielraum - Die Geschichte"
+
+# Westdeutscher Rundfunk
+
+elif [[ "$dateiname" =~ "WDR_5_KIRAKA" ]]
+then
+        sendung="WDR 5 KiRaKa"
+
+elif [[ "$dateiname" =~ "RADIOTOASTER" ]]
+then
+        sendung="Radiotoaster"
+
+elif [[ "$dateiname" =~ "BAERENBUDE" ]]
+then
+        sendung="Bärenbude"
+
+elif [[ "$dateiname" =~ "UNTERHALTUNG_AM_WOCHENENDE" ]]
+then
+        sendung="Unterhaltung am Wochenende"
+
+elif [[ "$dateiname" =~ "STRENG_OEFFENTLICH" ]]
+then
+        sendung="Streng öffentlich"
+
+elif [[ "$dateiname" =~ "SPASS_5" ]]
+then
+        sendung="Spaß 5"
+
+# Deutschlandfunk - Deutschlandradio
+
+elif [[ "$dateiname" =~ "KAKADU" ]]
+then
+        sendung="Kakadu"
+
+else
+	sendung="Unbekannt"
+
+fi
+
+# Titel-Tag zusammensetzen
+
+if [[ "$sendung" = "Unbekannt" ]]
+then
+	titel="$sender, $datum, $uhrzeit"
+else
+        titel="$sendung ($datum)"
+fi
+
+# ID3-Tags schreiben
+
+id3v2 -a "$sender" -A "$sendung" -t "$titel" -g "$genre" -y "$jahr" "/media/Daten/Radio/${dateiohnepfadundendung}.mp3"
+
+# Owner und Rechte der Ziel-Datei setzen
+
+chown tobias:tobias "/media/Daten/Radio/${dateiohnepfadundendung}.mp3"
+chmod 755 "/media/Daten/Radio/${dateiohnepfadundendung}.mp3"
+
+# Datei auf Dreambox löschen, wenn MP3-Datei erstellt und Rechte erfolgreich gesetzt
+
+if [[ "$?" = "0" ]]
+
+then
+ssh -i /home/tobias/.ssh/id_rsa root@192.168.1.14 "rm /hdd/Radio/${dateiohnepfadundendung}.*"
+
+# Datei auf Fritzbox NAS kopieren
+
+cd "/media/Fritzbox/Radio/${sender}"
+if [[ "$?" = "1" ]]
+then
+mkdir "/media/Fritzbox/Radio/${sender}"
+mkdir "/media/Fritzbox/Radio/${sender}/${sendung}"
+else
+cd "/media/Fritzbox/Radio/${sender}/${sendung}"
+if [[ "$?" = "1" ]]
+then
+mkdir "/media/Fritzbox/Radio/${sender}/${sendung}"
+fi
+fi
+
+cp "/media/Daten/Radio/${dateiohnepfadundendung}.mp3" "/media/Fritzbox/Radio/${sender}/${sendung}/${dateiohnepfadundendung}.mp3"
+
+# Datei auf Server in Unterverzeichnis verschieben
+
+cd "/media/Daten/Radio/${sender}"
+if [[ "$?" = "1" ]]
+then
+mkdir "/media/Daten/Radio/${sender}"
+mkdir "/media/Daten/Radio/${sender}/${sendung}"
+else
+cd "/media/Daten/Radio/${sender}/${sendung}"
+if [[ "$?" = "1" ]]
+then
+mkdir "/media/Daten/Radio/${sender}/${sendung}"
+fi
+fi
+
+mv "/media/Daten/Radio/${dateiohnepfadundendung}.mp3" "/media/Daten/Radio/${sender}/${sendung}/${dateiohnepfadundendung}.mp3"
+
+else
+
+# PROWL-Notify im Fehler-Fall
+
+curl "https://api.prowlapp.com/publicapi/add/?apikey=0123456789012345678901234567890123456789&application=RADIO-KONVERTER&description=Fehler%20bei%20der%20Konvertierung"
+exit
+
+fi
+        alledateien="$alledateien%0D%0A$dateiohnepfad%0D%0A"
+done
+
+# PROWL-Notify bei erfolgreicher Konvertierung aller Dateien
+
+description="Folgende%20Dateien%20wurden%20erfolgreich%20konvertiert%3A%0D%0A$alledateien"
+curl "https://api.prowlapp.com/publicapi/add/?apikey=0123456789012345678901234567890123456789&application=RADIO-KONVERTER&description=$description"
+
+fi
+
+zeitstempel="$(date --rfc-3339=seconds)" ; echo "===== Ende -> ${zeitstempel:0:19} ====="
+
+# Dreambox ausschalten, Warnung an alle User des Systems schicken und System nach zehn Minuten herunterfahren
+
+curl http://192.168.1.14/web/powerstate?newstate={1}
+
+wall /home/tobias/wall.text
+sleep 600
+poweroff
